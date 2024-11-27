@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliente - Calculadoras Conectadas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        .calculator-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .calculator-display {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-family: monospace;
+            font-size: 18px;
+        }
+        .photos-section {
+            margin-top: 30px;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .photo-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .photo-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .calculator-id {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .action-log {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .action-item {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calculadoras Conectadas</h1>
+    <div id="calculators"></div>
+
+    <div class="photos-section">
+        <h2>Fotos Capturadas</h2>
+        <div id="photos" class="photo-grid"></div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://' + window.location.host);
+        const calculators = new Map();
+        
+        function createCalculatorContainer(id) {
+            const container = document.createElement('div');
+            container.className = 'calculator-container';
+            container.id = `calc-${id}`;
+            
+            const idDiv = document.createElement('div');
+            idDiv.className = 'calculator-id';
+            idDiv.textContent = `Calculadora ID: ${id}`;
+            
+            const display = document.createElement('div');
+            display.className = 'calculator-display';
+            display.id = `display-${id}`;
+            display.textContent = '0';
+            
+            const actionLog = document.createElement('div');
+            actionLog.className = 'action-log';
+            actionLog.id = `log-${id}`;
+            
+            container.appendChild(idDiv);
+            container.appendChild(display);
+            container.appendChild(actionLog);
+            
+            return container;
+        }
+
+        function addActionToLog(id, action, value) {
+            const log = document.getElementById(`log-${id}`);
+            if (log) {
+                const actionItem = document.createElement('div');
+                actionItem.className = 'action-item';
+                actionItem.textContent = `${action}: ${value}`;
+                log.insertBefore(actionItem, log.firstChild);
+                
+                // Manter apenas as últimas 10 ações
+                while (log.children.length > 10) {
+                    log.removeChild(log.lastChild);
+                }
+            }
+        }
+
+        function addPhoto(photoData) {
+            const photosContainer = document.getElementById('photos');
+            const photoItem = document.createElement('div');
+            photoItem.className = 'photo-item';
+            
+            const img = document.createElement('img');
+            img.src = photoData;
+            
+            const timestamp = document.createElement('div');
+            timestamp.textContent = new Date().toLocaleString();
+            
+            photoItem.appendChild(img);
+            photoItem.appendChild(timestamp);
+            photosContainer.insertBefore(photoItem, photosContainer.firstChild);
+        }
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'calculators') {
+                // Atualizar lista de calculadoras
+                const calculatorsDiv = document.getElementById('calculators');
+                calculatorsDiv.innerHTML = '';
+                
+                data.calculators.forEach(id => {
+                    if (!calculators.has(id)) {
+                        calculators.set(id, createCalculatorContainer(id));
+                    }
+                    calculatorsDiv.appendChild(calculators.get(id));
+                });
+                
+                // Remover calculadoras desconectadas
+                calculators.forEach((container, id) => {
+                    if (!data.calculators.includes(id)) {
+                        calculators.delete(id);
+                    }
+                });
+            }
+            else if (data.type === 'calculator') {
+                const display = document.getElementById(`display-${data.calculatorId}`);
+                if (display) {
+                    display.textContent = data.display;
+                    addActionToLog(data.calculatorId, data.action, data.value);
+                }
+            }
+            else if (data.type === 'photo') {
+                addPhoto(data.data);
+            }
+        };
+
+        ws.onopen = () => {
+            console.log('Conectado ao servidor WebSocket');
+        };
+
+        ws.onclose = () => {
+            console.log('Desconectado do servidor WebSocket');
+        };
+
+        ws.onerror = (error) => {
+            console.error('Erro WebSocket:', error);
+        };
+    </script>
+</body>
+</html>
