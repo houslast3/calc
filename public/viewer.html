@@ -10,11 +10,16 @@
             margin: 0;
             padding: 0;
             background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
         .navbar {
             display: flex;
             justify-content: center;
             background-color: #333;
+            width: 100%;
             padding: 10px 0;
         }
         .navbar a {
@@ -33,42 +38,68 @@
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
             padding: 20px;
+            width: 100%;
+            max-width: 1200px;
         }
-        .calculator-container {
+        .calculator {
             background-color: white;
             border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
         }
         .calculator-title {
+            text-align: center;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid #eee;
         }
         .display {
+            width: 100%;
+            height: 60px;
             background-color: #f8f9fa;
-            padding: 15px;
-            margin: 10px 0;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            font-family: monospace;
-            font-size: 18px;
+            font-size: 24px;
             text-align: right;
-        }
-        .action-log {
-            background-color: #f8f9fa;
             padding: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .buttons button {
+            padding: 15px;
+            font-size: 18px;
+            border: none;
             border-radius: 5px;
-            max-height: 200px;
-            overflow-y: auto;
+            background-color: #e0e0e0;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
-        .action-item {
-            padding: 5px;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
+        .buttons button:hover {
+            background-color: #d0d0d0;
         }
-        .action-item:last-child {
-            border-bottom: none;
+        .buttons button.operator {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .buttons button.operator:hover {
+            background-color: #45a049;
+        }
+        .buttons button.equal {
+            grid-column: span 2;
+            background-color: #2196F3;
+            color: white;
+        }
+        .buttons button.equal:hover {
+            background-color: #1976D2;
         }
         #status {
             text-align: center;
@@ -111,10 +142,10 @@
 
         function createCalculatorContainer(id) {
             const container = document.createElement('div');
-            container.className = 'calculator-container';
+            container.className = 'calculator';
             container.id = `calc-${id}`;
 
-            const title = document.createElement('h3');
+            const title = document.createElement('div');
             title.className = 'calculator-title';
             title.textContent = `Calculadora ${id}`;
 
@@ -123,31 +154,31 @@
             display.id = `display-${id}`;
             display.textContent = '0';
 
-            const actionLog = document.createElement('div');
-            actionLog.className = 'action-log';
-            actionLog.id = `log-${id}`;
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.className = 'buttons';
+            buttonsContainer.id = `buttons-${id}`;
+
+            // Criar botões idênticos à calculadora original
+            const buttons = [
+                {text: '7', class: ''}, {text: '8', class: ''}, {text: '9', class: ''}, {text: '/', class: 'operator'},
+                {text: '4', class: ''}, {text: '5', class: ''}, {text: '6', class: ''}, {text: '*', class: 'operator'},
+                {text: '1', class: ''}, {text: '2', class: ''}, {text: '3', class: ''}, {text: '-', class: 'operator'},
+                {text: '0', class: ''}, {text: '.', class: ''}, {text: '=', class: 'equal'}, {text: '+', class: 'operator'}
+            ];
+
+            buttons.forEach(btn => {
+                const button = document.createElement('button');
+                button.textContent = btn.text;
+                button.className = btn.class;
+                button.disabled = true; // Botões são apenas para visualização
+                buttonsContainer.appendChild(button);
+            });
 
             container.appendChild(title);
             container.appendChild(display);
-            container.appendChild(actionLog);
+            container.appendChild(buttonsContainer);
 
             return container;
-        }
-
-        function addActionToLog(id, action, value) {
-            const log = document.getElementById(`log-${id}`);
-            if (log) {
-                const actionItem = document.createElement('div');
-                actionItem.className = 'action-item';
-                const timestamp = new Date().toLocaleTimeString();
-                actionItem.textContent = `[${timestamp}] ${action}: ${value}`;
-                log.insertBefore(actionItem, log.firstChild);
-
-                // Manter apenas as últimas 10 ações
-                while (log.children.length > 10) {
-                    log.removeChild(log.lastChild);
-                }
-            }
         }
 
         function updateCalculatorsList(calculatorIds) {
@@ -176,6 +207,29 @@
             });
         }
 
+        function updateCalculatorDisplay(calculatorId, expression) {
+            const display = document.getElementById(`display-${calculatorId}`);
+            if (display) {
+                display.textContent = expression;
+            }
+        }
+
+        function highlightButton(calculatorId, buttonText) {
+            const buttonsContainer = document.getElementById(`buttons-${calculatorId}`);
+            if (buttonsContainer) {
+                const buttons = buttonsContainer.getElementsByTagName('button');
+                for (let button of buttons) {
+                    if (button.textContent === buttonText) {
+                        button.style.backgroundColor = '#45a049';
+                        setTimeout(() => {
+                            button.style.backgroundColor = ''; // Restaurar cor original
+                        }, 200);
+                        break;
+                    }
+                }
+            }
+        }
+
         // WebSocket eventos
         ws.onopen = () => {
             statusElement.textContent = 'Conectado';
@@ -202,11 +256,8 @@
                 updateCalculatorsList(data.calculators);
             }
             else if (data.type === 'calculation') {
-                const display = document.getElementById(`display-${data.calculatorId}`);
-                if (display) {
-                    display.textContent = data.expression;
-                    addActionToLog(data.calculatorId, data.action, data.value);
-                }
+                updateCalculatorDisplay(data.calculatorId, data.expression);
+                highlightButton(data.calculatorId, data.value);
             }
         };
     </script>
