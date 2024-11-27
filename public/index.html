@@ -3,209 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Servidor</title>
+    <title>Calculadora WebSocket</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin: 0;
+            padding: 20px;
             background-color: #f0f0f0;
         }
-        .calculator {
+        nav {
             background-color: #333;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-        #display {
-            width: 100%;
-            height: 60px;
-            margin-bottom: 10px;
-            font-size: 24px;
-            text-align: right;
             padding: 10px;
-            background-color: #fff;
-            border: none;
-            border-radius: 5px;
+            margin-bottom: 20px;
         }
-        .buttons {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-        button {
-            padding: 20px;
-            font-size: 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            background-color: #666;
+        nav a {
             color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin-right: 10px;
         }
-        button:hover {
-            background-color: #999;
+        nav a:hover {
+            background-color: #555;
         }
-        .operator {
-            background-color: #ff9500;
+        .active {
+            background-color: #4CAF50;
         }
-        #camera-section {
-            margin-top: 20px;
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
             text-align: center;
         }
-        #video {
-            width: 320px;
-            height: 240px;
-            margin-bottom: 10px;
-            background-color: #333;
-        }
-        #photo {
-            width: 320px;
-            height: 240px;
-            margin-bottom: 10px;
-            background-color: #333;
-        }
-        #camera-button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+        h1 {
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <h1>Calculadora Servidor</h1>
+    <nav>
+        <a href="/" class="active">Início</a>
+        <a href="/calculator.html">Calculadora</a>
+        <a href="/viewer.html">Visualizador</a>
+    </nav>
     
-    <div class="calculator">
-        <input type="text" id="display" readonly>
-        <div class="buttons">
-            <button onclick="appendNumber('7')">7</button>
-            <button onclick="appendNumber('8')">8</button>
-            <button onclick="appendNumber('9')">9</button>
-            <button onclick="appendOperator('/')" class="operator">/</button>
-            
-            <button onclick="appendNumber('4')">4</button>
-            <button onclick="appendNumber('5')">5</button>
-            <button onclick="appendNumber('6')">6</button>
-            <button onclick="appendOperator('*')" class="operator">*</button>
-            
-            <button onclick="appendNumber('1')">1</button>
-            <button onclick="appendNumber('2')">2</button>
-            <button onclick="appendNumber('3')">3</button>
-            <button onclick="appendOperator('-')" class="operator">-</button>
-            
-            <button onclick="appendNumber('0')">0</button>
-            <button onclick="appendNumber('.')">.</button>
-            <button onclick="calculate()">=</button>
-            <button onclick="appendOperator('+')" class="operator">+</button>
-            
-            <button onclick="clearDisplay()" style="grid-column: span 4;">C</button>
-        </div>
+    <div class="container">
+        <h1>Bem-vindo à Calculadora WebSocket</h1>
+        <p>Escolha uma opção no menu acima:</p>
+        <ul style="list-style: none; padding: 0;">
+            <li><strong>Calculadora:</strong> Use a calculadora e compartilhe seus cálculos</li>
+            <li><strong>Visualizador:</strong> Veja os cálculos de todas as calculadoras conectadas</li>
+        </ul>
     </div>
-
-    <div id="camera-section">
-        <video id="video" autoplay></video>
-        <canvas id="photo"></canvas>
-        <br>
-        <button id="camera-button" onclick="toggleCamera()">Ativar Câmera</button>
-        <button id="capture-button" onclick="capturePhoto()" style="display: none;">Tirar Foto</button>
-    </div>
-
-    <script>
-        let ws = new WebSocket('ws://' + window.location.host);
-        let cameraActive = false;
-        let stream = null;
-
-        // Calculadora
-        function appendNumber(num) {
-            document.getElementById('display').value += num;
-            sendToClients('number', num);
-        }
-
-        function appendOperator(op) {
-            document.getElementById('display').value += op;
-            sendToClients('operator', op);
-        }
-
-        function clearDisplay() {
-            document.getElementById('display').value = '';
-            sendToClients('clear', '');
-        }
-
-        function calculate() {
-            try {
-                const result = eval(document.getElementById('display').value);
-                document.getElementById('display').value = result;
-                sendToClients('result', result);
-            } catch (error) {
-                document.getElementById('display').value = 'Error';
-                sendToClients('error', 'Error');
-            }
-        }
-
-        function sendToClients(type, value) {
-            ws.send(JSON.stringify({
-                type: 'calculator',
-                action: type,
-                value: value,
-                display: document.getElementById('display').value
-            }));
-        }
-
-        // Câmera
-        async function toggleCamera() {
-            if (!cameraActive) {
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    document.getElementById('video').srcObject = stream;
-                    document.getElementById('capture-button').style.display = 'inline-block';
-                    document.getElementById('camera-button').textContent = 'Desativar Câmera';
-                    cameraActive = true;
-                } catch (err) {
-                    console.error('Erro ao acessar a câmera:', err);
-                }
-            } else {
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                }
-                document.getElementById('video').srcObject = null;
-                document.getElementById('capture-button').style.display = 'none';
-                document.getElementById('camera-button').textContent = 'Ativar Câmera';
-                cameraActive = false;
-            }
-        }
-
-        function capturePhoto() {
-            const canvas = document.getElementById('photo');
-            const video = document.getElementById('video');
-            const context = canvas.getContext('2d');
-            
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const photoData = canvas.toDataURL('image/jpeg');
-            ws.send(JSON.stringify({
-                type: 'photo',
-                data: photoData
-            }));
-        }
-
-        // WebSocket
-        ws.onopen = () => {
-            console.log('Conectado ao servidor WebSocket');
-        };
-
-        ws.onclose = () => {
-            console.log('Desconectado do servidor WebSocket');
-        };
-
-        ws.onerror = (error) => {
-            console.error('Erro WebSocket:', error);
-        };
-    </script>
 </body>
 </html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        nav {
+            background-color: #333;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+        }
+        nav a:hover {
+            background-color: #555;
+        }
+        .active {
+            background-color: #4CAF50;
+        }
+        .calculator {
+            max-width: 300px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #display {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: right;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        button {
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+        }
+        button:hover {
+            background-color: #e9ecef;
+        }
+        .operator {
+            background-color: #ff9500;
+            color: white;
+            border: none;
+        }
+        .operator:hover {
+            background-color: #ff8000;
+        }
+        #status {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Início</a>
+        <a href="/calculator.html" class="active">Calculadora</a>
+        <a href="/viewer.html">Visualizador</a>
+    </nav>
+
+    <div class="calculator">
+        <input type="text" id="display" readonly>
+        <div class="buttons">
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button onclick="appendOperator('/')" class="operator">/</button>
+            
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button onclick="appendOperator('*')" class="operator">*</button>
+            
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button onclick="appendOperator('-')" class="operator">-</button>
+            
+            <button onclick="appendNumber('0')">0</button>
+            <button onclick="appendNumber('.')">.</button>
+            <button onclick="calculate()">=</button>
+            <button onclick="appendOperator('+')" class="operator">+</button>
+            
+            <button onclick="clearDisplay()" style="grid-column: span 4;">Limpar</button>
+        </div>
+    </div>
+
+    <div id="status">Conectando...</div>
+
+    <script>
+        const ws = new WebSocket('ws://' + window.location.host);
+        const statusElement = document.getElementById('status');
+        let expression = '';
+
+        // WebSocket eventos
+        ws.onopen = () => {
+            statusElement.textContent = 'Conectado';
+            // Registrar como calculadora
+            ws.send(JSON.stringify({
+                type: 'register',
+                clientType: 'calculator'
+            }));
+        };
+
+        ws.onclose = () => {
+            statusElement.textContent = 'Desconectado';
+        };
+
+        ws.onerror = () => {
+            statusElement.textContent = 'Erro na conexão';
+        };
+
+        // Funções da calculadora
+        function appendNumber(num) {
+            expression += num;
+            updateDisplay();
+            sendCalculation('number', num);
+        }
+
+        function appendOperator(op) {
+            expression += op;
+            updateDisplay();
+            sendCalculation('operator', op);
+        }
+
+        function clearDisplay() {
+            expression = '';
+            updateDisplay();
+            sendCalculation('clear', '');
+        }
+
+        function calculate() {
+            try {
+                const result = eval(expression);
+                expression = String(result);
+                updateDisplay();
+                sendCalculation('result', result);
+            } catch (error) {
+                expression = 'Erro';
+                updateDisplay();
+                sendCalculation('error', 'Erro');
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('display').value = expression;
+        }
+
+        function sendCalculation(action, value) {
+            ws.send(JSON.stringify({
+                type: 'calculation',
+                action: action,
+                value: value,
+                expression: expression
+            }));
+        }
+    </script>
+</body>
+</html>

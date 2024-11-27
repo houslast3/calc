@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Calculadoras</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        nav {
+            background-color: #333;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+        }
+        nav a:hover {
+            background-color: #555;
+        }
+        .active {
+            background-color: #4CAF50;
+        }
+        #calculators {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .calculator-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .calculator-title {
+            color: #333;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .display {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 18px;
+            text-align: right;
+        }
+        .action-log {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .action-item {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .action-item:last-child {
+            border-bottom: none;
+        }
+        #status {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        .no-calculators {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Início</a>
+        <a href="/calculator.html">Calculadora</a>
+        <a href="/viewer.html" class="active">Visualizador</a>
+    </nav>
+
+    <div id="status">Conectando...</div>
+    <div id="calculators">
+        <div class="no-calculators">
+            Aguardando calculadoras conectarem...
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://' + window.location.host);
+        const statusElement = document.getElementById('status');
+        const calculatorsDiv = document.getElementById('calculators');
+        const calculators = new Map();
+
+        function createCalculatorContainer(id) {
+            const container = document.createElement('div');
+            container.className = 'calculator-container';
+            container.id = `calc-${id}`;
+
+            const title = document.createElement('h3');
+            title.className = 'calculator-title';
+            title.textContent = `Calculadora ${id}`;
+
+            const display = document.createElement('div');
+            display.className = 'display';
+            display.id = `display-${id}`;
+            display.textContent = '0';
+
+            const actionLog = document.createElement('div');
+            actionLog.className = 'action-log';
+            actionLog.id = `log-${id}`;
+
+            container.appendChild(title);
+            container.appendChild(display);
+            container.appendChild(actionLog);
+
+            return container;
+        }
+
+        function addActionToLog(id, action, value) {
+            const log = document.getElementById(`log-${id}`);
+            if (log) {
+                const actionItem = document.createElement('div');
+                actionItem.className = 'action-item';
+                const timestamp = new Date().toLocaleTimeString();
+                actionItem.textContent = `[${timestamp}] ${action}: ${value}`;
+                log.insertBefore(actionItem, log.firstChild);
+
+                // Manter apenas as últimas 10 ações
+                while (log.children.length > 10) {
+                    log.removeChild(log.lastChild);
+                }
+            }
+        }
+
+        function updateCalculatorsList(calculatorIds) {
+            calculatorsDiv.innerHTML = '';
+            
+            if (calculatorIds.length === 0) {
+                const noCalc = document.createElement('div');
+                noCalc.className = 'no-calculators';
+                noCalc.textContent = 'Aguardando calculadoras conectarem...';
+                calculatorsDiv.appendChild(noCalc);
+                return;
+            }
+
+            calculatorIds.forEach(id => {
+                if (!calculators.has(id)) {
+                    calculators.set(id, createCalculatorContainer(id));
+                }
+                calculatorsDiv.appendChild(calculators.get(id));
+            });
+
+            // Remover calculadoras desconectadas
+            calculators.forEach((container, id) => {
+                if (!calculatorIds.includes(id)) {
+                    calculators.delete(id);
+                }
+            });
+        }
+
+        // WebSocket eventos
+        ws.onopen = () => {
+            statusElement.textContent = 'Conectado';
+            // Registrar como visualizador
+            ws.send(JSON.stringify({
+                type: 'register',
+                clientType: 'viewer'
+            }));
+        };
+
+        ws.onclose = () => {
+            statusElement.textContent = 'Desconectado';
+        };
+
+        ws.onerror = () => {
+            statusElement.textContent = 'Erro na conexão';
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'calculatorList') {
+                updateCalculatorsList(data.calculators);
+            }
+            else if (data.type === 'calculation') {
+                const display = document.getElementById(`display-${data.calculatorId}`);
+                if (display) {
+                    display.textContent = data.expression;
+                    addActionToLog(data.calculatorId, data.action, data.value);
+                }
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 {
-  "name": "websocket-calculator",
+  "name": "calculadora-websocket",
   "version": "1.0.0",
   "description": "Calculadora multiplayer com WebSocket",
   "main": "server.js",
@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "ws": "^8.13.0",
-    "body-parser": "^1.20.2"
+    "ws": "^8.13.0"
   }
 }

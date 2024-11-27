@@ -10,50 +10,68 @@ const wss = new WebSocket.Server({ server });
 // Servir arquivos estáticos
 app.use(express.static('public'));
 
-// Armazenar conexões ativas
-const clients = new Set();
+// Armazenar conexões ativas e seus tipos (calculadora ou visualizador)
+const connections = new Map();
 
 wss.on('connection', (ws) => {
-    clients.add(ws);
-    
-    // Enviar ID único para o cliente
     ws.id = Date.now();
-    ws.send(JSON.stringify({ type: 'id', id: ws.id }));
     
-    // Broadcast lista de calculadoras conectadas
-    const activeCalculators = Array.from(clients).map(client => client.id);
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ 
-                type: 'calculators',
-                calculators: activeCalculators
-            }));
+    ws.on('message', (message) => {
+        const data = JSON.parse(message);
+        
+        if (data.type === 'register') {
+            // Registrar o tipo de conexão (calculadora ou visualizador)
+            connections.set(ws, {
+                id: ws.id,
+                type: data.clientType
+            });
+            
+            // Se for um visualizador, enviar lista de calculadoras ativas
+            if (data.clientType === 'viewer') {
+                const calculators = Array.from(connections.entries())
+                    .filter(([_, info]) => info.type === 'calculator')
+                    .map(([_, info]) => info.id);
+                    
+                ws.send(JSON.stringify({
+                    type: 'calculatorList',
+                    calculators: calculators
+                }));
+            }
+        }
+        else if (data.type === 'calculation') {
+            // Transmitir cálculos para todos os visualizadores
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    const clientInfo = connections.get(client);
+                    if (clientInfo && clientInfo.type === 'viewer') {
+                        client.send(JSON.stringify({
+                            type: 'calculation',
+                            calculatorId: ws.id,
+                            ...data
+                        }));
+                    }
+                }
+            });
         }
     });
 
-    ws.on('message', (message) => {
-        const data = JSON.parse(message);
-        // Repassar mensagem para todos os clientes
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                    ...data,
-                    calculatorId: ws.id
-                }));
-            }
-        });
-    });
-
     ws.on('close', () => {
-        clients.delete(ws);
-        // Atualizar lista de calculadoras conectadas
-        const activeCalculators = Array.from(clients).map(client => client.id);
+        // Remover conexão e notificar visualizadores
+        connections.delete(ws);
+        
+        const calculators = Array.from(connections.entries())
+            .filter(([_, info]) => info.type === 'calculator')
+            .map(([_, info]) => info.id);
+            
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ 
-                    type: 'calculators',
-                    calculators: activeCalculators
-                }));
+                const clientInfo = connections.get(client);
+                if (clientInfo && clientInfo.type === 'viewer') {
+                    client.send(JSON.stringify({
+                        type: 'calculatorList',
+                        calculators: calculators
+                    }));
+                }
             }
         });
     });
