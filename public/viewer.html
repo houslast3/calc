@@ -8,24 +8,24 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f0f0f0;
         }
-        nav {
+        .navbar {
+            display: flex;
+            justify-content: center;
             background-color: #333;
-            padding: 10px;
-            margin-bottom: 20px;
+            padding: 10px 0;
         }
-        nav a {
+        .navbar a {
             color: white;
             text-decoration: none;
-            padding: 10px 20px;
-            margin-right: 10px;
+            margin: 0 15px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
         }
-        nav a:hover {
-            background-color: #555;
-        }
-        .active {
+        .navbar a:hover, .navbar a.active {
             background-color: #4CAF50;
         }
         #calculators {
@@ -84,11 +84,11 @@
     </style>
 </head>
 <body>
-    <nav>
+    <div class="navbar">
         <a href="/">Início</a>
         <a href="/calculator.html">Calculadora</a>
         <a href="/viewer.html" class="active">Visualizador</a>
-    </nav>
+    </div>
 
     <div id="status">Conectando...</div>
     <div id="calculators">
@@ -98,7 +98,13 @@
     </div>
 
     <script>
-        const ws = new WebSocket('ws://' + window.location.host);
+        function getWebSocketUrl() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            return `${protocol}//${host}`;
+        }
+
+        const ws = new WebSocket(getWebSocketUrl());
         const statusElement = document.getElementById('status');
         const calculatorsDiv = document.getElementById('calculators');
         const calculators = new Map();
@@ -184,8 +190,9 @@
             statusElement.textContent = 'Desconectado';
         };
 
-        ws.onerror = () => {
-            statusElement.textContent = 'Erro na conexão';
+        ws.onerror = (error) => {
+            statusElement.textContent = 'Erro de conexão';
+            console.error('WebSocket Error:', error);
         };
 
         ws.onmessage = (event) => {

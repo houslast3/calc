@@ -3,55 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora WebSocket</title>
+    <title>Calculadora Multiplayer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
-        nav {
+        .navbar {
+            display: flex;
+            justify-content: center;
             background-color: #333;
-            padding: 10px;
-            margin-bottom: 20px;
+            width: 100%;
+            padding: 10px 0;
+            position: fixed;
+            top: 0;
         }
-        nav a {
+        .navbar a {
             color: white;
             text-decoration: none;
-            padding: 10px 20px;
-            margin-right: 10px;
+            margin: 0 15px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
         }
-        nav a:hover {
-            background-color: #555;
-        }
-        .active {
+        .navbar a:hover, .navbar a.active {
             background-color: #4CAF50;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
             text-align: center;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
         }
         h1 {
             color: #333;
+            margin-bottom: 20px;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button-secondary {
+            background-color: #2196F3;
+        }
+        .button-secondary:hover {
+            background-color: #1976D2;
         }
     </style>
 </head>
 <body>
-    <nav>
+    <div class="navbar">
         <a href="/" class="active">Início</a>
         <a href="/calculator.html">Calculadora</a>
         <a href="/viewer.html">Visualizador</a>
-    </nav>
-    
+    </div>
+
     <div class="container">
-        <h1>Bem-vindo à Calculadora WebSocket</h1>
-        <p>Escolha uma opção no menu acima:</p>
-        <ul style="list-style: none; padding: 0;">
-            <li><strong>Calculadora:</strong> Use a calculadora e compartilhe seus cálculos</li>
-            <li><strong>Visualizador:</strong> Veja os cálculos de todas as calculadoras conectadas</li>
-        </ul>
+        <h1>Calculadora Multiplayer</h1>
+        <p class="description">
+            Bem-vindo à Calculadora Multiplayer! Esta aplicação permite que múltiplos usuários realizem cálculos em tempo real e visualizem as operações de outros usuários.
+        </p>
+        <div class="buttons">
+            <a href="/calculator.html" class="button">Abrir Calculadora</a>
+            <a href="/viewer.html" class="button button-secondary">Ver Calculadoras</a>
+        </div>
     </div>
 </body>
 </html>
